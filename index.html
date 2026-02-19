@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OpsTracker 2.0</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #fdf2f4;
+    --surface: #ffffff;
+    --surface-hover: #fff5f7;
+    --border: #f5d5dc;
+    --text: #3d2028;
+    --text-secondary: #9a7480;
+    --accent: #e8608a;
+    --accent-hover: #d94a78;
+    --accent-light: rgba(232,96,138,.08);
+    --danger: #e53e3e;
+    --danger-hover: #c53030;
+    --low: #86b9e6;
+    --medium: #e8a855;
+    --high: #e56b7a;
+    --radius: 14px;
+    --shadow: 0 2px 8px rgba(180,100,120,.07), 0 1px 3px rgba(180,100,120,.05);
+    --shadow-lg: 0 6px 20px rgba(180,100,120,.10);
+  }
+
+  [data-theme="dark"] {
+    --bg: #1e1218;
+    --surface: #2a1a22;
+    --surface-hover: #34222b;
+    --border: #4a2d38;
+    --text: #f0dce2;
+    --text-secondary: #b0889a;
+    --accent: #e8608a;
+    --accent-hover: #f07aa0;
+    --accent-light: rgba(232,96,138,.15);
+    --shadow: 0 2px 8px rgba(0,0,0,.25);
+    --shadow-lg: 0 6px 20px rgba(0,0,0,.35);
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    min-height: 100vh;
+    transition: background .2s, color .2s;
+  }
+
+  /* ===== Header ===== */
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: var(--shadow);
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .header-left { display: flex; align-items: center; gap: 16px; }
+  .header h1 { font-size: 20px; font-weight: 700; letter-spacing: -.3px; white-space: nowrap; }
+  .header h1 span { color: var(--accent); }
+  .header-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .stats { display: flex; gap: 16px; font-size: 12px; color: var(--text-secondary); }
+  .stats strong { color: var(--text); }
+
+  /* ===== Toolbar buttons ===== */
+  .icon-btn {
+    width: 34px; height: 34px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    transition: background .15s, color .15s;
+  }
+  .icon-btn:hover { background: var(--accent-light); color: var(--accent); }
+  .icon-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  /* ===== Layout ===== */
+  .container { max-width: 1100px; margin: 0 auto; padding: 20px 20px 60px; }
+
+  /* ===== Toolbar row ===== */
+  .toolbar {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+    align-items: center;
+  }
+  .search-box {
+    flex: 1; min-width: 180px;
+    height: 36px; padding: 0 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    color: var(--text);
+    background: var(--surface);
+    outline: none;
+    transition: border-color .15s;
+  }
+  .search-box:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(79,110,247,.12); }
+
+  select, input[type="text"], input[type="date"] {
+    height: 36px; padding: 0 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    color: var(--text);
+    background: var(--surface);
+    outline: none;
+    transition: border-color .15s;
+  }
+  select:focus, input[type="text"]:focus, input[type="date"]:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(79,110,247,.12);
+  }
+  textarea {
+    width: 100%; padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 13px; font-family: inherit;
+    color: var(--text);
+    background: var(--surface);
+    outline: none; resize: vertical;
+    transition: border-color .15s;
+  }
+  textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(79,110,247,.12); }
+
+  .filter-select { min-width: 110px; }
+
+  /* ===== Add form ===== */
+  .add-form {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow);
+  }
+  .add-form-header {
+    display: flex; justify-content: space-between; align-items: center;
+    cursor: pointer; user-select: none;
+  }
+  .add-form-header h2 { font-size: 14px; font-weight: 600; }
+  .add-form-body { margin-top: 14px; }
+  .add-form-body.collapsed { display: none; }
+  .form-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; }
+  .form-row + .form-row { margin-top: 10px; }
+  .form-field {
+    display: flex; flex-direction: column; gap: 4px;
+    flex: 1; min-width: 120px;
+  }
+  .form-field label {
+    font-size: 11px; font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase; letter-spacing: .4px;
+  }
+  .form-field input, .form-field select, .form-field textarea { width: 100%; }
+
+  .btn {
+    height: 36px; padding: 0 16px; border: none; border-radius: 8px;
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    transition: background .15s, transform .1s;
+    white-space: nowrap; display: inline-flex; align-items: center; gap: 6px;
+  }
+  .btn:active { transform: scale(.97); }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent-hover); }
+  .btn-sm { height: 26px; padding: 0 8px; font-size: 11px; border-radius: 6px; }
+  .btn-ghost { background: transparent; color: var(--text-secondary); border: 1px solid var(--border); }
+  .btn-ghost:hover { background: var(--surface-hover); }
+  .btn-danger { background: transparent; color: var(--danger); border: 1px solid var(--border); }
+  .btn-danger:hover { background: #fde8ee; border-color: var(--danger); }
+  [data-theme="dark"] .btn-danger:hover { background: rgba(229,62,62,.12); }
+  .btn-export { background: transparent; color: var(--text-secondary); border: 1px solid var(--border); font-size: 12px; height: 34px; }
+  .btn-export:hover { background: var(--accent-light); color: var(--accent); }
+
+  /* ===== Weekly stats panel ===== */
+  .weekly-stats {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow);
+    display: none;
+  }
+  .weekly-stats.visible { display: block; }
+  .weekly-stats h3 { font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+  .ws-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px,1fr)); gap: 10px; }
+  .ws-card {
+    background: var(--bg); border-radius: 8px; padding: 12px 14px; text-align: center;
+  }
+  .ws-card .ws-num { font-size: 28px; font-weight: 700; color: var(--accent); }
+  .ws-card .ws-label { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+  .ws-bar-row { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 12px; }
+  .ws-bar-track { flex: 1; height: 8px; background: var(--bg); border-radius: 4px; overflow: hidden; }
+  .ws-bar-fill { height: 100%; border-radius: 4px; transition: width .3s; }
+
+  /* ===== Task list ===== */
+  .task-list { display: flex; flex-direction: column; gap: 6px; }
+
+  .task-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    box-shadow: var(--shadow);
+    transition: box-shadow .15s;
+  }
+  .task-card:hover { box-shadow: var(--shadow-lg); }
+  .task-card.archived-card { opacity: .55; }
+
+  .task-main {
+    display: flex; align-items: center; gap: 12px;
+  }
+
+  .task-info { flex: 1; min-width: 0; }
+  .task-title {
+    font-size: 14px; font-weight: 600; margin-bottom: 3px; word-break: break-word;
+    cursor: pointer;
+  }
+  .task-title:hover { color: var(--accent); }
+  .task-title.done-title { text-decoration: line-through; opacity: .55; }
+  .task-meta {
+    display: flex; gap: 8px; flex-wrap: wrap; align-items: center; font-size: 11px;
+  }
+
+  .badge {
+    display: inline-flex; align-items: center;
+    padding: 2px 8px; border-radius: 100px;
+    font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .3px;
+  }
+  .badge-todo       { background: #fde8ee; color: #9a5068; }
+  .badge-inprogress { background: #fef0d6; color: #8a6530; }
+  .badge-done       { background: #e2f5e9; color: #2d6e42; }
+  [data-theme="dark"] .badge-todo       { background: #3d2030; color: #e8a0b8; }
+  [data-theme="dark"] .badge-inprogress { background: #3d2e10; color: #f0c060; }
+  [data-theme="dark"] .badge-done       { background: #153020; color: #6ede90; }
+
+  .priority-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+  .priority-low    .priority-dot { background: var(--low); }
+  .priority-medium .priority-dot { background: var(--medium); }
+  .priority-high   .priority-dot { background: var(--high); }
+
+  .task-project { font-size: 11px; color: var(--accent); font-weight: 600; }
+  .task-deadline { font-size: 11px; color: var(--text-secondary); }
+  .task-deadline.overdue { color: var(--danger); font-weight: 600; }
+  .task-recur-badge { font-size: 10px; color: #c07ab0; font-weight: 600; }
+
+  .task-actions { display: flex; gap: 4px; flex-shrink: 0; flex-wrap: wrap; justify-content: flex-end; }
+
+  /* ===== Expanded detail ===== */
+  .task-detail {
+    margin-top: 10px; padding-top: 10px;
+    border-top: 1px solid var(--border);
+    display: none;
+  }
+  .task-detail.open { display: block; }
+
+  .detail-section { margin-bottom: 10px; }
+  .detail-section h4 {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    color: var(--text-secondary); letter-spacing: .3px; margin-bottom: 6px;
+  }
+  .notes-display {
+    font-size: 13px; white-space: pre-wrap; color: var(--text);
+    background: var(--bg); border-radius: 6px; padding: 8px 10px;
+    min-height: 20px; cursor: pointer;
+  }
+  .notes-display:empty::after { content: 'Click to add notes...'; color: var(--text-secondary); font-style: italic; }
+
+  /* ===== Subtasks ===== */
+  .subtask-list { list-style: none; }
+  .subtask-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 4px 0; font-size: 13px;
+  }
+  .subtask-item input[type="checkbox"] {
+    width: 16px; height: 16px; accent-color: #e8608a; cursor: pointer; flex-shrink: 0;
+  }
+  .subtask-item .subtask-text { flex: 1; }
+  .subtask-item .subtask-text.checked { text-decoration: line-through; opacity: .5; }
+  .subtask-item .subtask-del {
+    background: none; border: none; color: var(--text-secondary); cursor: pointer;
+    font-size: 14px; padding: 0 4px; opacity: 0; transition: opacity .15s;
+  }
+  .subtask-item:hover .subtask-del { opacity: 1; }
+  .subtask-add {
+    display: flex; gap: 6px; margin-top: 6px;
+  }
+  .subtask-add input {
+    flex: 1; height: 30px; font-size: 13px;
+  }
+  .progress-bar {
+    height: 4px; background: var(--bg); border-radius: 2px; margin-top: 6px; overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%; background: var(--accent); border-radius: 2px;
+    transition: width .25s;
+  }
+  .progress-text { font-size: 10px; color: var(--text-secondary); margin-top: 2px; }
+
+  /* ===== Kanban ===== */
+  .kanban { display: none; gap: 14px; }
+  .kanban.active { display: grid; grid-template-columns: repeat(3, 1fr); }
+  .kanban-col {
+    background: var(--bg); border-radius: var(--radius);
+    padding: 10px; min-height: 200px;
+  }
+  [data-theme="dark"] .kanban-col { background: #1a1018; }
+  .kanban-col-title {
+    font-size: 12px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .5px; color: var(--text-secondary);
+    margin-bottom: 10px; padding: 4px 6px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .kanban-col-title .col-count {
+    background: var(--border); border-radius: 10px;
+    padding: 0 7px; font-size: 11px; color: var(--text-secondary);
+  }
+  .kanban-col .task-card { margin-bottom: 8px; cursor: grab; }
+  .kanban-col .task-card:active { cursor: grabbing; }
+  .kanban-col .task-card .task-main { flex-direction: column; align-items: stretch; gap: 8px; }
+  .kanban-col .task-actions { justify-content: flex-start; }
+
+  .drag-over { outline: 2px dashed var(--accent); outline-offset: -2px; }
+
+  /* ===== Empty state ===== */
+  .empty-state { text-align: center; padding: 50px 20px; color: var(--text-secondary); }
+  .empty-state p { font-size: 14px; }
+
+  /* ===== Archive toggle ===== */
+  .archive-toggle {
+    margin-top: 24px; text-align: center;
+  }
+  .archive-toggle button {
+    background: none; border: none; color: var(--text-secondary);
+    font-size: 13px; cursor: pointer; padding: 8px 16px;
+  }
+  .archive-toggle button:hover { color: var(--accent); }
+
+  /* ===== Modal (notes edit) ===== */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.4);
+    display: none; align-items: center; justify-content: center;
+    z-index: 200;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface); border-radius: 12px;
+    padding: 24px; width: 90%; max-width: 500px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.2);
+  }
+  .modal h3 { font-size: 16px; font-weight: 600; margin-bottom: 12px; }
+  .modal textarea { min-height: 120px; margin-bottom: 12px; }
+  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+  /* ===== Responsive ===== */
+  @media (max-width: 768px) {
+    .kanban.active { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 640px) {
+    .header { padding: 12px 14px; }
+    .container { padding: 12px 10px 40px; }
+    .form-row { flex-direction: column; }
+    .form-field { min-width: 100%; }
+    .task-main { flex-direction: column; align-items: stretch; gap: 8px; }
+    .task-actions { justify-content: flex-start; }
+    .toolbar { flex-direction: column; }
+    .search-box { width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Notes edit modal -->
+<div class="modal-overlay" id="notesModal">
+  <div class="modal">
+    <h3 id="notesModalTitle">Notes</h3>
+    <textarea id="notesTextarea" placeholder="Your notes..."></textarea>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeNotesModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveNotes()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="header">
+  <div class="header-left">
+    <h1><span>Ops</span>Tracker <small style="font-size:11px;font-weight:400;color:var(--text-secondary)">2.0</small></h1>
+    <div class="stats" id="stats"></div>
+  </div>
+  <div class="header-right">
+    <button class="btn btn-export" onclick="exportJSON()" title="Export JSON">JSON</button>
+    <button class="btn btn-export" onclick="exportCSV()" title="Export CSV">CSV</button>
+    <button class="btn btn-export" onclick="document.getElementById('importFile').click()" title="Import JSON">Import</button>
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(event)">
+    <button class="icon-btn" id="btnKanban" onclick="toggleView()" title="Toggle Kanban / List">&#9783;</button>
+    <button class="icon-btn" id="btnStats" onclick="toggleWeeklyStats()" title="Weekly stats">&#9776;</button>
+    <button class="icon-btn" id="btnTheme" onclick="toggleTheme()" title="Toggle dark theme">&#9790;</button>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- Weekly stats -->
+  <div class="weekly-stats" id="weeklyStats"></div>
+
+  <!-- Toolbar: search + filters + sort -->
+  <div class="toolbar">
+    <input type="text" class="search-box" id="searchBox" placeholder="Search tasks...">
+    <select class="filter-select" id="filterProject">
+      <option value="all">All projects</option>
+      <option value="hiring">Hiring</option>
+      <option value="content">Content</option>
+      <option value="hub">Hub</option>
+      <option value="truv">Truv</option>
+    </select>
+    <select class="filter-select" id="filterStatus">
+      <option value="all">All statuses</option>
+      <option value="todo">To Do</option>
+      <option value="inprogress">In Progress</option>
+      <option value="done">Done</option>
+    </select>
+    <select class="filter-select" id="filterPriority">
+      <option value="all">All priorities</option>
+      <option value="high">High</option>
+      <option value="medium">Medium</option>
+      <option value="low">Low</option>
+    </select>
+    <select class="filter-select" id="sortBy">
+      <option value="status">Sort: Status</option>
+      <option value="priority">Sort: Priority</option>
+      <option value="deadline">Sort: Deadline</option>
+      <option value="created">Sort: Newest</option>
+      <option value="created-asc">Sort: Oldest</option>
+    </select>
+  </div>
+
+  <!-- Add form -->
+  <div class="add-form">
+    <div class="add-form-header" onclick="toggleAddForm()">
+      <h2>+ New Task</h2>
+      <span id="addFormArrow" style="font-size:12px;color:var(--text-secondary)">&#9660;</span>
+    </div>
+    <div class="add-form-body" id="addFormBody">
+      <div class="form-row">
+        <div class="form-field" style="flex:2">
+          <label>Title</label>
+          <input type="text" id="taskTitle" placeholder="What needs to be done?">
+        </div>
+        <div class="form-field">
+          <label>Project</label>
+          <select id="taskProject">
+            <option value="hiring">Hiring</option>
+            <option value="content">Content</option>
+            <option value="hub">Hub</option>
+            <option value="truv">Truv</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Priority</label>
+          <select id="taskPriority">
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+            <option value="high">High</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-field">
+          <label>Deadline</label>
+          <input type="date" id="taskDeadline">
+        </div>
+        <div class="form-field">
+          <label>Repeat</label>
+          <select id="taskRecur">
+            <option value="">No repeat</option>
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+          </select>
+        </div>
+        <div class="form-field" style="flex:0">
+          <label>&nbsp;</label>
+          <button class="btn btn-primary" onclick="addTask()">Add</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- List view -->
+  <div class="task-list" id="taskList"></div>
+
+  <!-- Kanban view -->
+  <div class="kanban" id="kanbanView">
+    <div class="kanban-col" data-status="todo"
+         ondragover="kanbanDragOver(event)" ondrop="kanbanDrop(event,'todo')" ondragleave="kanbanDragLeave(event)">
+      <div class="kanban-col-title">To Do <span class="col-count" id="countTodo">0</span></div>
+      <div id="kanbanTodo"></div>
+    </div>
+    <div class="kanban-col" data-status="inprogress"
+         ondragover="kanbanDragOver(event)" ondrop="kanbanDrop(event,'inprogress')" ondragleave="kanbanDragLeave(event)">
+      <div class="kanban-col-title">In Progress <span class="col-count" id="countInprogress">0</span></div>
+      <div id="kanbanInprogress"></div>
+    </div>
+    <div class="kanban-col" data-status="done"
+         ondragover="kanbanDragOver(event)" ondrop="kanbanDrop(event,'done')" ondragleave="kanbanDragLeave(event)">
+      <div class="kanban-col-title">Done <span class="col-count" id="countDone">0</span></div>
+      <div id="kanbanDone"></div>
+    </div>
+  </div>
+
+  <!-- Archive toggle -->
+  <div class="archive-toggle" id="archiveToggle" style="display:none">
+    <button onclick="toggleArchive()" id="archiveBtn">Show completed tasks</button>
+  </div>
+
+</div>
+
+<script>
+const STORAGE_KEY = 'ops_tracker_tasks_v2';
+const SETTINGS_KEY = 'ops_tracker_settings';
+const PROJECTS = { hiring: 'Hiring', content: 'Content', hub: 'Hub', truv: 'Truv' };
+const STATUSES = { todo: 'To Do', inprogress: 'In Progress', done: 'Done' };
+const STATUS_ORDER = ['todo', 'inprogress', 'done'];
+const PRIORITIES = { low: 'Low', medium: 'Medium', high: 'High' };
+const PRIORITY_ORDER = ['low', 'medium', 'high'];
+
+/* ===== State ===== */
+let tasks = [];
+let settings = { theme: 'light', view: 'list', showArchive: false, showWeekly: false };
+let editingNotesId = null;
+
+function loadData() {
+  try { tasks = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch { tasks = []; }
+  // migrate from v1
+  if (!tasks.length) {
+    try {
+      const old = JSON.parse(localStorage.getItem('ops_tracker_tasks') || '[]');
+      if (old.length) {
+        tasks = old.map(t => ({ ...t, notes: '', subtasks: [], recur: null }));
+        save();
+      }
+    } catch {}
+  }
+  try { settings = { ...settings, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') }; } catch {}
+}
+
+function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks)); }
+function saveSettings() { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }
+
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+
+function escHtml(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+/* ===== Theme ===== */
+function applyTheme() {
+  document.documentElement.setAttribute('data-theme', settings.theme);
+  document.getElementById('btnTheme').textContent = settings.theme === 'dark' ? '\u2600' : '\u263E';
+}
+function toggleTheme() {
+  settings.theme = settings.theme === 'dark' ? 'light' : 'dark';
+  applyTheme();
+  saveSettings();
+}
+
+/* ===== View toggle ===== */
+function applyView() {
+  const isList = settings.view === 'list';
+  document.getElementById('taskList').style.display = isList ? 'flex' : 'none';
+  document.getElementById('kanbanView').classList.toggle('active', !isList);
+  document.getElementById('btnKanban').classList.toggle('active', !isList);
+  document.getElementById('archiveToggle').style.display = isList ? '' : 'none';
+}
+function toggleView() {
+  settings.view = settings.view === 'list' ? 'kanban' : 'list';
+  applyView();
+  saveSettings();
+  render();
+}
+
+/* ===== Add form toggle ===== */
+function toggleAddForm() {
+  const body = document.getElementById('addFormBody');
+  const arrow = document.getElementById('addFormArrow');
+  body.classList.toggle('collapsed');
+  arrow.innerHTML = body.classList.contains('collapsed') ? '&#9654;' : '&#9660;';
+}
+
+/* ===== Recurring tasks ===== */
+function checkRecurring() {
+  const now = new Date();
+  const today = now.toISOString().slice(0, 10);
+  tasks.forEach(t => {
+    if (t.recur && t.status === 'done' && t.completedAt) {
+      const completedDate = t.completedAt.slice(0, 10);
+      let nextDate = new Date(t.completedAt);
+      if (t.recur === 'daily') nextDate.setDate(nextDate.getDate() + 1);
+      else if (t.recur === 'weekly') nextDate.setDate(nextDate.getDate() + 7);
+      else if (t.recur === 'monthly') nextDate.setMonth(nextDate.getMonth() + 1);
+      if (nextDate.toISOString().slice(0, 10) <= today) {
+        // Create new instance
+        const newDeadline = t.deadline ? calculateNextDeadline(t.deadline, t.recur) : null;
+        tasks.push({
+          id: uid(),
+          title: t.title,
+          project: t.project,
+          status: 'todo',
+          priority: t.priority,
+          deadline: newDeadline,
+          created: new Date().toISOString(),
+          notes: '',
+          subtasks: t.subtasks ? t.subtasks.map(s => ({ ...s, done: false, id: uid() })) : [],
+          recur: t.recur
+        });
+        t.recur = null; // remove recur from old completed one
+      }
+    }
+  });
+  save();
+}
+
+function calculateNextDeadline(oldDeadline, recur) {
+  const d = new Date(oldDeadline);
+  const today = new Date();
+  if (recur === 'daily') d.setDate(d.getDate() + 1);
+  else if (recur === 'weekly') d.setDate(d.getDate() + 7);
+  else if (recur === 'monthly') d.setMonth(d.getMonth() + 1);
+  // If calculated date is in the past, base it on today
+  if (d < today) {
+    if (recur === 'daily') { today.setDate(today.getDate() + 1); return today.toISOString().slice(0,10); }
+    if (recur === 'weekly') { today.setDate(today.getDate() + 7); return today.toISOString().slice(0,10); }
+    if (recur === 'monthly') { today.setMonth(today.getMonth() + 1); return today.toISOString().slice(0,10); }
+  }
+  return d.toISOString().slice(0, 10);
+}
+
+/* ===== CRUD ===== */
+function addTask() {
+  const title = document.getElementById('taskTitle').value.trim();
+  if (!title) { document.getElementById('taskTitle').focus(); return; }
+  tasks.push({
+    id: uid(),
+    title,
+    project: document.getElementById('taskProject').value,
+    status: 'todo',
+    priority: document.getElementById('taskPriority').value,
+    deadline: document.getElementById('taskDeadline').value || null,
+    created: new Date().toISOString(),
+    notes: '',
+    subtasks: [],
+    recur: document.getElementById('taskRecur').value || null
+  });
+  document.getElementById('taskTitle').value = '';
+  document.getElementById('taskDeadline').value = '';
+  document.getElementById('taskRecur').value = '';
+  save(); render();
+}
+
+function deleteTask(id) {
+  tasks = tasks.filter(t => t.id !== id);
+  save(); render();
+}
+
+function cycleStatus(id) {
+  const t = tasks.find(t => t.id === id);
+  if (!t) return;
+  const i = STATUS_ORDER.indexOf(t.status);
+  t.status = STATUS_ORDER[(i + 1) % STATUS_ORDER.length];
+  if (t.status === 'done') t.completedAt = new Date().toISOString();
+  else delete t.completedAt;
+  save(); render();
+}
+
+function cyclePriority(id) {
+  const t = tasks.find(t => t.id === id);
+  if (!t) return;
+  const i = PRIORITY_ORDER.indexOf(t.priority);
+  t.priority = PRIORITY_ORDER[(i + 1) % PRIORITY_ORDER.length];
+  save(); render();
+}
+
+/* ===== Notes modal ===== */
+function openNotesModal(id) {
+  const t = tasks.find(t => t.id === id);
+  if (!t) return;
+  editingNotesId = id;
+  document.getElementById('notesModalTitle').textContent = 'Notes: ' + t.title;
+  document.getElementById('notesTextarea').value = t.notes || '';
+  document.getElementById('notesModal').classList.add('open');
+  document.getElementById('notesTextarea').focus();
+}
+function closeNotesModal() {
+  document.getElementById('notesModal').classList.remove('open');
+  editingNotesId = null;
+}
+function saveNotes() {
+  const t = tasks.find(t => t.id === editingNotesId);
+  if (t) { t.notes = document.getElementById('notesTextarea').value; save(); render(); }
+  closeNotesModal();
+}
+
+/* ===== Subtasks ===== */
+function addSubtask(taskId) {
+  const input = document.getElementById('sub-input-' + taskId);
+  const text = input.value.trim();
+  if (!text) return;
+  const t = tasks.find(t => t.id === taskId);
+  if (!t) return;
+  if (!t.subtasks) t.subtasks = [];
+  t.subtasks.push({ id: uid(), text, done: false });
+  input.value = '';
+  save(); render();
+}
+
+function toggleSubtask(taskId, subId) {
+  const t = tasks.find(t => t.id === taskId);
+  if (!t) return;
+  const s = t.subtasks.find(s => s.id === subId);
+  if (s) s.done = !s.done;
+  save(); render();
+}
+
+function deleteSubtask(taskId, subId) {
+  const t = tasks.find(t => t.id === taskId);
+  if (!t) return;
+  t.subtasks = t.subtasks.filter(s => s.id !== subId);
+  save(); render();
+}
+
+/* ===== Task detail expand ===== */
+const expandedTasks = new Set();
+function toggleDetail(id) {
+  if (expandedTasks.has(id)) expandedTasks.delete(id);
+  else expandedTasks.add(id);
+  render();
+}
+
+/* ===== Archive ===== */
+function toggleArchive() {
+  settings.showArchive = !settings.showArchive;
+  saveSettings(); render();
+}
+
+/* ===== Weekly stats ===== */
+function toggleWeeklyStats() {
+  settings.showWeekly = !settings.showWeekly;
+  document.getElementById('btnStats').classList.toggle('active', settings.showWeekly);
+  saveSettings();
+  renderWeeklyStats();
+}
+
+function renderWeeklyStats() {
+  const el = document.getElementById('weeklyStats');
+  if (!settings.showWeekly) { el.classList.remove('visible'); return; }
+  el.classList.add('visible');
+
+  const now = new Date();
+  const weekAgo = new Date(now); weekAgo.setDate(weekAgo.getDate() - 7);
+
+  const completedThisWeek = tasks.filter(t =>
+    t.status === 'done' && t.completedAt && new Date(t.completedAt) >= weekAgo
+  ).length;
+  const createdThisWeek = tasks.filter(t => new Date(t.created) >= weekAgo).length;
+  const totalActive = tasks.filter(t => t.status !== 'done').length;
+  const overdue = tasks.filter(t => isOverdue(t)).length;
+
+  // Per-project breakdown
+  const projectStats = Object.keys(PROJECTS).map(key => {
+    const total = tasks.filter(t => t.project === key).length;
+    const done = tasks.filter(t => t.project === key && t.status === 'done').length;
+    return { key, name: PROJECTS[key], total, done, pct: total ? Math.round(done / total * 100) : 0 };
+  });
+
+  const colors = { hiring: '#e8608a', content: '#6dba88', hub: '#e8a855', truv: '#b07cc8' };
+
+  el.innerHTML = `
+    <h3>Weekly Overview</h3>
+    <div class="ws-grid">
+      <div class="ws-card"><div class="ws-num">${completedThisWeek}</div><div class="ws-label">Done this week</div></div>
+      <div class="ws-card"><div class="ws-num">${createdThisWeek}</div><div class="ws-label">Created this week</div></div>
+      <div class="ws-card"><div class="ws-num">${totalActive}</div><div class="ws-label">Active tasks</div></div>
+      <div class="ws-card"><div class="ws-num" style="color:${overdue ? 'var(--danger)' : 'var(--accent)'}">${overdue}</div><div class="ws-label">Overdue</div></div>
+    </div>
+    ${projectStats.map(p => `
+      <div class="ws-bar-row">
+        <span style="min-width:70px;font-weight:600">${p.name}</span>
+        <div class="ws-bar-track">
+          <div class="ws-bar-fill" style="width:${p.pct}%;background:${colors[p.key]}"></div>
+        </div>
+        <span style="min-width:55px;text-align:right">${p.done}/${p.total}</span>
+      </div>
+    `).join('')}
+  `;
+}
+
+/* ===== Helpers ===== */
+function isOverdue(t) {
+  if (!t.deadline || t.status === 'done') return false;
+  return new Date(t.deadline) < new Date(new Date().toDateString());
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return '';
+  return new Date(dateStr).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+}
+
+function getFiltered() {
+  const fp = document.getElementById('filterProject').value;
+  const fs = document.getElementById('filterStatus').value;
+  const fpr = document.getElementById('filterPriority').value;
+  const q = document.getElementById('searchBox').value.toLowerCase().trim();
+
+  return tasks.filter(t => {
+    if (fp !== 'all' && t.project !== fp) return false;
+    if (fs !== 'all' && t.status !== fs) return false;
+    if (fpr !== 'all' && t.priority !== fpr) return false;
+    if (q && !t.title.toLowerCase().includes(q) && !(t.notes || '').toLowerCase().includes(q)) return false;
+    return true;
+  });
+}
+
+function sortTasks(arr) {
+  const mode = document.getElementById('sortBy').value;
+  const pw = { high: 0, medium: 1, low: 2 };
+  const sw = { inprogress: 0, todo: 1, done: 2 };
+
+  return [...arr].sort((a, b) => {
+    if (mode === 'status') {
+      if (sw[a.status] !== sw[b.status]) return sw[a.status] - sw[b.status];
+      return pw[a.priority] - pw[b.priority];
+    }
+    if (mode === 'priority') {
+      if (pw[a.priority] !== pw[b.priority]) return pw[a.priority] - pw[b.priority];
+      return sw[a.status] - sw[b.status];
+    }
+    if (mode === 'deadline') {
+      const da = a.deadline || '9999'; const db = b.deadline || '9999';
+      return da.localeCompare(db);
+    }
+    if (mode === 'created') return (b.created || '').localeCompare(a.created || '');
+    if (mode === 'created-asc') return (a.created || '').localeCompare(b.created || '');
+    return 0;
+  });
+}
+
+/* ===== Render stats ===== */
+function renderHeaderStats() {
+  const total = tasks.length;
+  const done = tasks.filter(t => t.status === 'done').length;
+  const inprog = tasks.filter(t => t.status === 'inprogress').length;
+  const overdue = tasks.filter(t => isOverdue(t)).length;
+  document.getElementById('stats').innerHTML =
+    `<span>Total: <strong>${total}</strong></span>` +
+    `<span>Done: <strong>${done}</strong></span>` +
+    `<span>In progress: <strong>${inprog}</strong></span>` +
+    (overdue ? `<span style="color:var(--danger)">Overdue: <strong>${overdue}</strong></span>` : '');
+}
+
+/* ===== Render task card HTML ===== */
+function taskCardHtml(t, isKanban) {
+  const overdue = isOverdue(t);
+  const statusClass = t.status === 'inprogress' ? 'badge-inprogress' : `badge-${t.status}`;
+  const isOpen = expandedTasks.has(t.id);
+  const subDone = (t.subtasks || []).filter(s => s.done).length;
+  const subTotal = (t.subtasks || []).length;
+  const subPct = subTotal ? Math.round(subDone / subTotal * 100) : 0;
+  const recurLabels = { daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly' };
+
+  return `
+    <div class="task-card${t.status === 'done' && !settings.showArchive && settings.view === 'list' ? ' archived-card' : ''}"
+         draggable="true" ondragstart="dragStart(event,'${t.id}')">
+      <div class="task-main">
+        <div class="task-info">
+          <div class="task-title${t.status === 'done' ? ' done-title' : ''}" onclick="toggleDetail('${t.id}')">${escHtml(t.title)}</div>
+          <div class="task-meta">
+            <span class="task-project">${PROJECTS[t.project]}</span>
+            <span class="badge ${statusClass}">${STATUSES[t.status]}</span>
+            <span class="priority-${t.priority}"><span class="priority-dot"></span> ${PRIORITIES[t.priority]}</span>
+            ${t.deadline ? `<span class="task-deadline${overdue ? ' overdue' : ''}">${overdue ? 'Overdue: ' : ''}${formatDate(t.deadline)}</span>` : ''}
+            ${t.recur ? `<span class="task-recur-badge">${recurLabels[t.recur] || ''}</span>` : ''}
+            ${t.notes ? '<span style="color:var(--text-secondary)" title="Has notes">&#9998;</span>' : ''}
+            ${subTotal ? `<span style="color:var(--text-secondary)">${subDone}/${subTotal}</span>` : ''}
+          </div>
+          ${subTotal ? `<div class="progress-bar"><div class="progress-bar-fill" style="width:${subPct}%"></div></div>` : ''}
+        </div>
+        <div class="task-actions">
+          <button class="btn btn-sm btn-ghost" onclick="cycleStatus('${t.id}')">Status</button>
+          <button class="btn btn-sm btn-ghost" onclick="cyclePriority('${t.id}')">Priority</button>
+          <button class="btn btn-sm btn-ghost" onclick="openNotesModal('${t.id}')">Notes</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteTask('${t.id}')">&times;</button>
+        </div>
+      </div>
+      <div class="task-detail${isOpen ? ' open' : ''}">
+        ${t.notes ? `<div class="detail-section"><h4>Notes</h4><div class="notes-display" onclick="openNotesModal('${t.id}')">${escHtml(t.notes)}</div></div>` : ''}
+        <div class="detail-section">
+          <h4>Subtasks${subTotal ? ` (${subDone}/${subTotal})` : ''}</h4>
+          <ul class="subtask-list">
+            ${(t.subtasks || []).map(s => `
+              <li class="subtask-item">
+                <input type="checkbox" ${s.done ? 'checked' : ''} onchange="toggleSubtask('${t.id}','${s.id}')">
+                <span class="subtask-text${s.done ? ' checked' : ''}">${escHtml(s.text)}</span>
+                <button class="subtask-del" onclick="deleteSubtask('${t.id}','${s.id}')">&times;</button>
+              </li>
+            `).join('')}
+          </ul>
+          <div class="subtask-add">
+            <input type="text" id="sub-input-${t.id}" placeholder="Add subtask..." onkeydown="if(event.key==='Enter')addSubtask('${t.id}')">
+            <button class="btn btn-sm btn-ghost" onclick="addSubtask('${t.id}')">+</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+/* ===== Main render ===== */
+function render() {
+  renderHeaderStats();
+  renderWeeklyStats();
+
+  const filtered = getFiltered();
+  const sorted = sortTasks(filtered);
+
+  // Archive logic: separate active and done
+  const active = sorted.filter(t => t.status !== 'done');
+  const done = sorted.filter(t => t.status === 'done');
+
+  // Show archive toggle only if there are done tasks
+  const archiveToggle = document.getElementById('archiveToggle');
+  archiveToggle.style.display = done.length && settings.view === 'list' ? '' : 'none';
+  document.getElementById('archiveBtn').textContent =
+    settings.showArchive ? `Hide completed (${done.length})` : `Show completed (${done.length})`;
+
+  // List view
+  if (settings.view === 'list') {
+    const list = document.getElementById('taskList');
+    const visibleTasks = settings.showArchive ? sorted : active;
+    if (visibleTasks.length === 0 && !done.length) {
+      list.innerHTML = '<div class="empty-state"><p>No tasks yet. Create your first task above.</p></div>';
+    } else if (visibleTasks.length === 0) {
+      list.innerHTML = '<div class="empty-state"><p>No active tasks matching filters.</p></div>';
+    } else {
+      list.innerHTML = visibleTasks.map(t => taskCardHtml(t, false)).join('');
+    }
+  }
+
+  // Kanban view
+  if (settings.view === 'kanban') {
+    ['todo', 'inprogress', 'done'].forEach(status => {
+      const col = sorted.filter(t => t.status === status);
+      const container = document.getElementById('kanban' + status.charAt(0).toUpperCase() + status.slice(1));
+      container.innerHTML = col.length
+        ? col.map(t => taskCardHtml(t, true)).join('')
+        : '<div class="empty-state" style="padding:20px"><p>Empty</p></div>';
+      const countId = 'count' + status.charAt(0).toUpperCase() + status.slice(1);
+      document.getElementById(countId).textContent = col.length;
+    });
+  }
+}
+
+/* ===== Drag & Drop (Kanban) ===== */
+let dragTaskId = null;
+function dragStart(e, id) {
+  dragTaskId = id;
+  e.dataTransfer.effectAllowed = 'move';
+}
+function kanbanDragOver(e) {
+  e.preventDefault();
+  e.currentTarget.classList.add('drag-over');
+}
+function kanbanDragLeave(e) {
+  e.currentTarget.classList.remove('drag-over');
+}
+function kanbanDrop(e, status) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if (!dragTaskId) return;
+  const t = tasks.find(t => t.id === dragTaskId);
+  if (t) {
+    t.status = status;
+    if (status === 'done') t.completedAt = new Date().toISOString();
+    else delete t.completedAt;
+    save(); render();
+  }
+  dragTaskId = null;
+}
+
+/* ===== Export / Import ===== */
+function exportJSON() {
+  const blob = new Blob([JSON.stringify(tasks, null, 2)], { type: 'application/json' });
+  downloadBlob(blob, 'ops-tracker-backup.json');
+}
+
+function exportCSV() {
+  const headers = ['Title', 'Project', 'Status', 'Priority', 'Deadline', 'Created', 'Recurring', 'Notes'];
+  const rows = tasks.map(t => [
+    `"${(t.title || '').replace(/"/g, '""')}"`,
+    PROJECTS[t.project] || t.project,
+    STATUSES[t.status] || t.status,
+    PRIORITIES[t.priority] || t.priority,
+    t.deadline || '',
+    t.created ? t.created.slice(0, 10) : '',
+    t.recur || '',
+    `"${(t.notes || '').replace(/"/g, '""').replace(/\n/g, ' ')}"`
+  ]);
+  const csv = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+  downloadBlob(new Blob([csv], { type: 'text/csv;charset=utf-8' }), 'ops-tracker.csv');
+}
+
+function downloadBlob(blob, filename) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function importJSON(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    try {
+      const imported = JSON.parse(ev.target.result);
+      if (Array.isArray(imported)) {
+        // Merge: skip duplicates by id
+        const existingIds = new Set(tasks.map(t => t.id));
+        let added = 0;
+        imported.forEach(t => {
+          if (!existingIds.has(t.id)) {
+            if (!t.subtasks) t.subtasks = [];
+            if (!t.notes) t.notes = '';
+            tasks.push(t);
+            added++;
+          }
+        });
+        save(); render();
+        alert('Imported ' + added + ' new tasks (' + (imported.length - added) + ' duplicates skipped).');
+      } else {
+        alert('Invalid file format.');
+      }
+    } catch { alert('Failed to parse JSON file.'); }
+    e.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+/* ===== Event listeners ===== */
+document.getElementById('searchBox').addEventListener('input', render);
+document.getElementById('filterProject').addEventListener('change', render);
+document.getElementById('filterStatus').addEventListener('change', render);
+document.getElementById('filterPriority').addEventListener('change', render);
+document.getElementById('sortBy').addEventListener('change', render);
+document.getElementById('taskTitle').addEventListener('keydown', e => { if (e.key === 'Enter') addTask(); });
+
+// Close modal on overlay click
+document.getElementById('notesModal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeNotesModal();
+});
+
+// Escape to close modal
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeNotesModal();
+});
+
+/* ===== Init ===== */
+loadData();
+applyTheme();
+applyView();
+checkRecurring();
+render();
+</script>
+</body>
+</html>
